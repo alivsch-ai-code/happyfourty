@@ -278,6 +278,17 @@
             margin-top: 18px; font-size: 0.8rem; color: #999; letter-spacing: 1.5px; font-weight: 700;
         }
 
+        /* --- ABSCHLUSS-VIDEO --- */
+        .final-video-section {
+            position: relative; width: 100%; padding: 100px 25px 80px; box-sizing: border-box;
+            background: #050505; text-align: center;
+        }
+        .final-video-wrap {
+            max-width: 460px; margin: 40px auto 0; border-radius: 28px; overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.55); background: #000;
+        }
+        .final-video-wrap video { width: 100%; display: block; }
+
         /* --- PLAYER BAR --- */
         .player-bar {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -469,6 +480,15 @@
         </div>
     </div>
 
+    <div class="final-video-section">
+        <h2>Zum Schluss</h2>
+        <h1 style="font-size: clamp(2rem, 6vw, 3.5rem);">Noch ein Beweis</h1>
+        <p>Falls jemand fragt, was da wirklich passiert ist.</p>
+        <div class="final-video-wrap">
+            <video src="Bilder/video-01.mp4" controls playsinline></video>
+        </div>
+    </div>
+
     <script>
         // Trage hier euren eigenen Telegram-Bot-Token und die Chat-ID ein, damit SOS,
         // Chat-Nachrichten und die "Geschenk annehmen"-Meldung wirklich ankommen.
@@ -614,14 +634,14 @@
         // { title: "Intro", src: "mp3/01. Intro.mp3", cover: "Bilder/foto-01.jpeg" },
         const playlist = [
             { title: "Intro – Roman anstatt Alex", src: "mp3/01. Intro – Roman anstatt Alex.mp3", cover: "Bilder/foto-01.jpeg" },
-            { title: "Roman, genieß deinen Tag", src: "mp3/Roman, genieß deinen Tag.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Auf unser'n Nacken", src: "mp3/Auf unser'n Nacken.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Wird zu Gold", src: "mp3/Wird zu Gold.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Roman wird vierzig (Cover)", src: "mp3/Roman wird vierzig_covered.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Zwei Geburtstage, ein Ziel", src: "mp3/Zwei Geburtstage, ein Ziel.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Alles Gute, Roman", src: "mp3/Alles Gute, Roman.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "Bilder/foto-01.jpeg" },
-            { title: "Zwei Geburtstage, ein Ziel", src: "mp3/Zwei Geburtstage, ein Ziel.mp3", cover: "Bilder/foto-01.jpeg" },
-            { title: "Roman wird vierzig (Cover)", src: "mp3/Roman wird vierzig_covered.mp3", cover: "Bilder/foto-01.jpeg" },
         ];
 
         let currentSongIndex = 0;
