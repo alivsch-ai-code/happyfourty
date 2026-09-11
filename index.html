@@ -229,28 +229,53 @@
         .dl-item:hover { background: rgba(255,255,255,0.1); }
         .dl-empty { color: #777; font-size: 0.9rem; text-align: left; }
 
-        /* --- FOTO COLLAGE --- */
+        /* --- FOTO COLLAGE (SWIPE CAROUSEL) --- */
         .collage-section {
-            position: relative; width: 100%; padding: 100px 20px 60px; box-sizing: border-box;
-            background: #050505; text-align: center;
+            position: relative; width: 100%; padding: 100px 0 60px; box-sizing: border-box;
+            background: #050505; text-align: center; overflow: hidden;
         }
-        .photo-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-            max-width: 1000px; margin: 40px auto 0;
+        .collage-section h2, .collage-section h1, .collage-section > p {
+            padding-left: 25px; padding-right: 25px;
         }
-        .photo-tile {
-            position: relative; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 10px;
-            background: #111; cursor: zoom-in;
+        .carousel-wrap { position: relative; margin-top: 40px; }
+        .photo-carousel {
+            display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+            padding: 10px calc(50% - 170px) 26px; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; -ms-overflow-style: none;
         }
-        .photo-tile img, .photo-tile video {
+        .photo-carousel::-webkit-scrollbar { display: none; }
+        .carousel-card {
+            position: relative; flex: 0 0 78vw; max-width: 340px; aspect-ratio: 4 / 5;
+            border-radius: 26px; overflow: hidden; scroll-snap-align: center; scroll-snap-stop: always;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.55); background: #111;
+            transform: scale(0.87); opacity: 0.5; transition: transform 0.35s ease, opacity 0.35s ease;
+            cursor: zoom-in;
+        }
+        .carousel-card.active { transform: scale(1); opacity: 1; }
+        .carousel-card img, .carousel-card video {
             width: 100%; height: 100%; object-fit: cover; display: block;
-            transition: transform 0.3s;
         }
-        .photo-tile:active img, .photo-tile:active video { transform: scale(0.94); }
-        .photo-tile.is-video::after {
-            content: '▶'; position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.6);
-            color: white; font-size: 0.7rem; width: 22px; height: 22px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+        .carousel-card::after {
+            content: ''; position: absolute; inset: 0; border-radius: 26px;
+            box-shadow: inset 0 -60px 60px -30px rgba(0,0,0,0.5); pointer-events: none;
+        }
+        .carousel-card.is-video::before {
+            content: '▶'; position: absolute; top: 14px; right: 14px; z-index: 2;
+            background: rgba(0,0,0,0.55); color: white; font-size: 0.8rem; width: 30px; height: 30px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .carousel-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+            border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(20,20,20,0.75);
+            backdrop-filter: blur(10px); color: white; font-size: 1.3rem; line-height: 1; cursor: pointer;
+            z-index: 3; display: flex; align-items: center; justify-content: center;
+        }
+        .carousel-arrow:active { transform: translateY(-50%) scale(0.9); }
+        .carousel-arrow.left { left: 10px; }
+        .carousel-arrow.right { right: 10px; }
+        .carousel-counter {
+            margin-top: 18px; font-size: 0.8rem; color: #999; letter-spacing: 1.5px; font-weight: 700;
         }
 
         /* --- PLAYER BAR --- */
@@ -383,8 +408,13 @@
     <div class="collage-section">
         <h2>Die Crew</h2>
         <h1 style="font-size: clamp(2rem, 6vw, 3.5rem);">Bevor's in die Hitze geht</h1>
-        <p>Ein paar Erinnerungen von uns, bevor wir dich in die nächste Dekade schwitzen. Tippe auf ein Bild für die Großansicht.</p>
-        <div id="photoGrid" class="photo-grid"></div>
+        <p>Ein paar Erinnerungen von uns, bevor wir dich in die nächste Dekade schwitzen. Wisch durch, tippe für die Großansicht.</p>
+        <div class="carousel-wrap">
+            <div id="photoGrid" class="photo-carousel"></div>
+            <button class="carousel-arrow left" onclick="scrollCarousel(-1)" aria-label="Zurück">‹</button>
+            <button class="carousel-arrow right" onclick="scrollCarousel(1)" aria-label="Weiter">›</button>
+        </div>
+        <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">78</span></div>
     </div>
 
     <div class="video-section">
@@ -522,20 +552,47 @@
 
         function renderPhotoGrid() {
             const grid = document.getElementById('photoGrid');
-            photos.forEach(src => {
-                const tile = document.createElement('div');
-                tile.className = 'photo-tile';
-                tile.innerHTML = `<img src="${src}" loading="lazy" alt="">`;
-                tile.onclick = () => openLightbox(src, false);
-                grid.appendChild(tile);
+            const items = photos.map(src => ({ src, isVideo: false }));
+            if (collageVideo) items.push({ src: collageVideo, isVideo: true });
+
+            items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'carousel-card' + (item.isVideo ? ' is-video' : '');
+                card.dataset.index = index;
+                card.innerHTML = item.isVideo
+                    ? `<video src="${item.src}" muted loop autoplay playsinline></video>`
+                    : `<img src="${item.src}" loading="lazy" alt="">`;
+                card.onclick = () => openLightbox(item.src, item.isVideo);
+                grid.appendChild(card);
             });
-            if (collageVideo) {
-                const tile = document.createElement('div');
-                tile.className = 'photo-tile is-video';
-                tile.innerHTML = `<video src="${collageVideo}" muted loop autoplay playsinline></video>`;
-                tile.onclick = () => openLightbox(collageVideo, true);
-                grid.appendChild(tile);
-            }
+
+            document.getElementById('carouselTotal').innerText = items.length;
+            setupCarouselTracking(grid);
+        }
+
+        function setupCarouselTracking(grid) {
+            const cards = Array.from(grid.querySelectorAll('.carousel-card'));
+            if (cards.length === 0) return;
+            cards[0].classList.add('active');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+                        cards.forEach(c => c.classList.remove('active'));
+                        entry.target.classList.add('active');
+                        document.getElementById('carouselIndex').innerText = Number(entry.target.dataset.index) + 1;
+                    }
+                });
+            }, { root: grid, threshold: [0.6] });
+
+            cards.forEach(c => observer.observe(c));
+        }
+
+        function scrollCarousel(dir) {
+            const grid = document.getElementById('photoGrid');
+            const active = grid.querySelector('.carousel-card.active') || grid.querySelector('.carousel-card');
+            const target = dir > 0 ? active.nextElementSibling : active.previousElementSibling;
+            if (target) target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
 
         function openLightbox(src, isVideo) {
@@ -564,6 +621,7 @@
             { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "Bilder/foto-01.jpeg" },
             { title: "Zwei Geburtstage, ein Ziel", src: "mp3/Zwei Geburtstage, ein Ziel.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Roman wird vierzig (Cover)", src: "mp3/Roman wird vierzig_covered.mp3", cover: "Bilder/foto-01.jpeg" },
         ];
 
         let currentSongIndex = 0;
