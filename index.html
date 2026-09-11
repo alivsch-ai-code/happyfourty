@@ -155,7 +155,7 @@
             overflow: hidden; display: flex; justify-content: center; align-items: center; text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
-        .video-section video, .video-section img.hero-bg {
+        .video-section video {
             position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%;
             width: auto; height: auto; transform: translate(-50%, -50%); z-index: 1; object-fit: cover; opacity: 0.45; filter: saturate(1.1);
         }
@@ -373,7 +373,7 @@
     </div>
 
     <div class="video-section">
-        <video autoplay muted loop playsinline><source src="Bilder/video-01.mp4" type="video/mp4"></video>
+        <video autoplay muted loop playsinline><source src="aufguss.mp4" type="video/mp4"></video>
         <div class="content-overlay">
             <h2>Happy Birthday, Roman!</h2>
             <h1>Endlich 40. Bro</h1>
@@ -388,7 +388,7 @@
     </div>
 
     <div class="video-section">
-        <img class="hero-bg" src="Bilder/foto-46.jpeg" alt="">
+        <video autoplay muted loop playsinline><source src="programm.mp4" type="video/mp4"></video>
         <div class="content-overlay">
             <h2>Das Programm</h2>
             <div class="icon-grid">
@@ -412,7 +412,7 @@
     </div>
 
     <div class="video-section">
-        <img class="hero-bg" src="Bilder/foto-48.jpeg" alt="">
+        <video autoplay muted loop playsinline><source src="maenner.mp4" type="video/mp4"></video>
         <div class="content-overlay">
             <div class="voucher-card">
                 <h2>Dein Geschenk</h2>
@@ -553,9 +553,14 @@
         }
 
         // --- PLAYLIST CONFIG ---
-        // Sobald du deine MP3s hinzufügst: Dateien in den Ordner mp3/ legen und hier eintragen, z.B.:
+        // Sobald du weitere MP3s hinzufügst: Dateien in den Ordner mp3/ legen und hier eintragen, z.B.:
         // { title: "Intro", src: "mp3/01. Intro.mp3", cover: "Bilder/foto-01.jpeg" },
-        const playlist = [];
+        const playlist = [
+            { title: "Roman, genieß deinen Tag", src: "mp3/Roman, genieß deinen Tag.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Wird zu Gold", src: "mp3/Wird zu Gold.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Alles Gute, Roman", src: "mp3/Alles Gute, Roman.mp3", cover: "Bilder/foto-01.jpeg" },
+            { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "Bilder/foto-01.jpeg" },
+        ];
 
         let currentSongIndex = 0;
         let wasPlayingBeforeHide = false;
