@@ -129,7 +129,7 @@ body.drunk-mode .video-section {
   border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #2AABEE;
 }
 
-/* Wenik Particle */
+/* Partikel (Wenik / Bestellung) */
 .leaf-particle {
   position: fixed; font-size: 2rem; pointer-events: none; z-index: 8500; top: 100%;
   animation: flyAround 2s linear forwards;
@@ -245,7 +245,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
 }
 .carousel-card.active { transform: scale(1); opacity: 1; }
 .carousel-card img, .carousel-card video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+  width: 100%; height: 100%; object-fit: contain; display: block;
 }
 .carousel-card::after {
   content: ''; position: absolute; inset: 0; border-radius: 26px;
@@ -281,6 +281,39 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
 }
 .final-video-wrap + .final-video-wrap { margin-top: 24px; }
 .final-video-wrap video { width: 100%; display: block; }
+
+/* --- BESTELL-GAG AM SEITENENDE --- */
+.order-section {
+  width: 100%; padding: 40px 25px 90px; box-sizing: border-box;
+  background: #050505; text-align: center;
+}
+.order-btn {
+  background: linear-gradient(135deg, #ff2d75, #ff4757);
+  color: #fff; border: none; padding: 20px 38px; border-radius: 18px;
+  font-size: 1rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 12px 35px rgba(255, 45, 117, 0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.order-btn:active { transform: scale(0.96); box-shadow: 0 5px 18px rgba(255, 45, 117, 0.3); }
+.order-result {
+  margin-top: 30px; font-size: clamp(1.6rem, 7vw, 3rem); font-weight: 900;
+  text-transform: uppercase; letter-spacing: -1px; color: #ff2d75;
+  opacity: 0; transform: scale(0.6); pointer-events: none; transition: opacity 0.3s;
+}
+.order-result.visible {
+  opacity: 1;
+  animation: orderPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             orderGlow 1.4s 0.6s ease-in-out infinite;
+}
+@keyframes orderPop {
+  from { transform: scale(0.6) rotate(-6deg); }
+  to   { transform: scale(1) rotate(0deg); }
+}
+@keyframes orderGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(255, 45, 117, 0.6); }
+  50%      { text-shadow: 0 0 45px rgba(255, 45, 117, 1); }
+}
 
 /* --- PLAYER BAR --- */
 .player-bar {
@@ -415,7 +448,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
     <button class="carousel-arrow left" onclick="scrollCarousel(-1)" aria-label="Zurück">‹</button>
     <button class="carousel-arrow right" onclick="scrollCarousel(1)" aria-label="Weiter">›</button>
   </div>
-  <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">78</span></div>
+  <div class="carousel-counter"><span id="carouselIndex">1</span> / <span id="carouselTotal">89</span></div>
 </div>
 
 <div class="video-section">
@@ -478,6 +511,11 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   </div>
 </div>
 
+<div class="order-section">
+  <button class="order-btn" onclick="orderNow()">🚨 Jetzt Nutten bestellen</button>
+  <div id="orderResult" class="order-result">Nutten sind bestellt</div>
+</div>
+
 <script>
 // ============================================================
 //  KONFIG
@@ -490,8 +528,8 @@ const telegramConfigured = Boolean(botToken && chatId);
 // ============================================================
 //  HELPER
 // ============================================================
-// Dateinamen enthalten Leerzeichen, Apostrophe, Klammern und Kyrillisch.
-// encodeURI verhindert 404s (die sich wie Abbrueche anfuehlen).
+// Dateinamen enthalten Leerzeichen, Apostrophe, Klammern, Umlaute und
+// Kyrillisch. encodeURI verhindert 404s (die sich wie Abbrueche anfuehlen).
 function safeUrl(path) {
   try { return encodeURI(decodeURI(path)); } catch (e) { return encodeURI(path); }
 }
@@ -544,25 +582,35 @@ function wenikSlap(btn) {
     videoSec.style.transform = `translate(${Math.random()*4-2}px, ${Math.random()*4-2}px)`;
     setTimeout(() => videoSec.style.transform = 'none', 100);
   }
-  for (let i=0; i<8; i++) createLeaf();
+  for (let i=0; i<8; i++) createParticle("🌿");
   if (hitCount === 50) {
     sendTelegramChat("🔥 EILMELDUNG: Roman hat sich 50 Mal mit dem Wenik geschlagen! Maschine.");
     showToast("Level Up! Gruppe informiert.", "💪");
   }
 }
 
-function createLeaf() {
-  const leaf = document.createElement('div');
-  leaf.innerText = "🌿"; leaf.className = "leaf-particle";
-  leaf.style.left = (Math.random() * 100) + "%";
-  leaf.style.setProperty('--tx', (Math.random() * 200 - 100) + "px");
-  document.body.appendChild(leaf);
-  setTimeout(() => leaf.remove(), 2000);
+function createParticle(emoji) {
+  const p = document.createElement('div');
+  p.innerText = emoji; p.className = "leaf-particle";
+  p.style.left = (Math.random() * 100) + "%";
+  p.style.setProperty('--tx', (Math.random() * 200 - 100) + "px");
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 2000);
+}
+
+// --- BESTELL-GAG ---
+function orderNow() {
+  const res = document.getElementById('orderResult');
+  res.classList.remove('visible');
+  void res.offsetWidth;              // Reflow erzwingen, damit die Animation neu startet
+  res.classList.add('visible');
+  for (let i = 0; i < 14; i++) setTimeout(() => createParticle("💋"), i * 60);
+  sendTelegramChat("🚨 Roman hat bestellt. Die Jungs wissen Bescheid.");
 }
 
 // ============================================================
 //  VIDEO-MANAGER
-//  Problem: 5 gleichzeitig dekodierende Videos sprengen das
+//  Problem: mehrere gleichzeitig dekodierende Videos sprengen das
 //  Hardware-Decoder-Limit vieler Handys -> Audio bricht ab.
 //  Loesung: nur das sichtbare Hintergrundvideo laeuft.
 // ============================================================
@@ -617,8 +665,10 @@ function setupAudioDucking() {
 
 // ============================================================
 //  FOTO COLLAGE
+//  Alle Fotos liegen im Ordner Bilder/ als foto-01.jpeg ... foto-88.jpeg,
+//  dazu ein Video video-01.mp4
 // ============================================================
-const photoCount = 77;
+const photoCount = 88;
 const photos = Array.from({length: photoCount}, (_, i) => `Bilder/foto-${String(i + 1).padStart(2, '0')}.jpeg`);
 const collageVideo = "Bilder/video-01.mp4";
 
@@ -702,6 +752,7 @@ const playlist = [
   { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "Bilder/foto-01.jpeg" },
   { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "Bilder/foto-01.jpeg" },
   { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "Bilder/foto-01.jpeg" },
+  { title: "Shurik ist glücklich", src: "mp3/Shurik ist glücklich.mp3", cover: "Bilder/foto-01.jpeg" },
 ];
 
 let currentSongIndex = 0;
