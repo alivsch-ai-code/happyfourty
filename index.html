@@ -270,7 +270,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
 }
 .carousel-card.active { transform: scale(1); opacity: 1; }
 .carousel-card img, .carousel-card video {
-    width: 100%; height: 100%; object-fit: cover; display: block;
+    width: 100%; height: 100%; object-fit: contain; display: block;
 }
 .carousel-card::after {
     content: ''; position: absolute; inset: 0; border-radius: 26px;
@@ -628,8 +628,8 @@ function createLeaf() {
 }
 
 // --- FOTO COLLAGE ---
-// Alle Fotos liegen im Ordner Bilder/ als foto-01.jpeg ... foto-77.jpeg, dazu ein Video video-01.mp4
-const photoCount = 77;
+// Alle Fotos liegen im Ordner Bilder/ als foto-01.jpeg ... foto-91.jpeg, dazu ein Video video-01.mp4
+const photoCount = 91;
 const photos = Array.from({length: photoCount}, (_, i) => `Bilder/foto-${String(i + 1).padStart(2, '0')}.jpeg`);
 const collageVideo = "Bilder/video-01.mp4";
 
@@ -701,6 +701,7 @@ const playlist = [
     { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "Bilder/foto-01.jpeg" },
     { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "Bilder/foto-01.jpeg" },
     { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "Bilder/foto-01.jpeg" },
+    { title: "Shurik ist glücklich", src: "mp3/Shurik ist glücklich.mp3", cover: "Bilder/foto-01.jpeg" },
 ];
 
 let currentSongIndex = 0;
