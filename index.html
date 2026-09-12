@@ -307,6 +307,25 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
 .final-video-wrap + .final-video-wrap { margin-top: 24px; }
 .final-video-wrap video { width: 100%; display: block; }
 
+.nutten-btn {
+    margin-top: 50px; padding: 18px 30px; font-size: 1.1rem; font-weight: 800;
+    letter-spacing: 0.5px; color: white; background: linear-gradient(135deg, var(--danger), #ff8a00);
+    border: none; border-radius: 50px; cursor: pointer;
+    box-shadow: 0 15px 40px rgba(255, 71, 87, 0.4);
+}
+.nutten-btn:active { transform: scale(0.95); }
+.nutten-msg {
+    display: none; margin-top: 30px; font-size: clamp(2rem, 9vw, 4rem); font-weight: 900;
+    color: var(--danger); text-shadow: 0 0 25px rgba(255, 71, 87, 0.8);
+    animation: nuttenPop 0.6s ease;
+}
+.nutten-msg.show { display: block; }
+@keyframes nuttenPop {
+    0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
 /* --- PLAYER BAR --- */
 .player-bar {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -503,6 +522,9 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
     <div class="final-video-wrap">
         <video src="altes_video_.mp4" controls playsinline></video>
     </div>
+
+    <button id="nuttenBtn" class="nutten-btn" onclick="bestellNutten()">JETZT NUTTEN BESTELLEN</button>
+    <div id="nuttenMsg" class="nutten-msg">NUTTEN SIND BESTELLT</div>
 </div>
 
 <script>
@@ -618,6 +640,10 @@ function wenikSlap(btn) {
     }
 }
 
+function bestellNutten() {
+    document.getElementById('nuttenMsg').classList.add('show');
+}
+
 function createLeaf() {
     const leaf = document.createElement('div');
     leaf.innerText = "🌿"; leaf.className = "leaf-particle";
@@ -628,8 +654,8 @@ function createLeaf() {
 }
 
 // --- FOTO COLLAGE ---
-// Alle Fotos liegen im Ordner Bilder/ als foto-01.jpeg ... foto-91.jpeg, dazu ein Video video-01.mp4
-const photoCount = 91;
+// Alle Fotos liegen im Ordner Bilder/ als foto-01.jpeg ... foto-88.jpeg, dazu ein Video video-01.mp4
+const photoCount = 88;
 const photos = Array.from({length: photoCount}, (_, i) => `Bilder/foto-${String(i + 1).padStart(2, '0')}.jpeg`);
 const collageVideo = "Bilder/video-01.mp4";
 
