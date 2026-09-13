@@ -775,18 +775,23 @@ async function pollTelegramFeed() {
   try {
     const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100&offset=${telegramOffset}`);
     const data = await res.json();
-    if (!data.ok) return; // z.B. kurzzeitiger 409-Konflikt bei mehreren gleichzeitigen Besuchern
+    if (!data.ok) { // z.B. kurzzeitiger 409-Konflikt bei mehreren gleichzeitigen Besuchern
+      if (feed && feed.childElementCount === 0) feed.innerHTML = `<div class="feed-empty">Feed gerade nicht erreichbar</div>`;
+      return;
+    }
     if (data.result.length > 0) {
       telegramOffset = data.result[data.result.length - 1].update_id + 1;
+      const newMessages = data.result
+        .map(u => u.message || u.channel_post)
+        .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption));
+      if (newMessages.length > 0) {
+        feedMessages.push(...newMessages);
+        feedMessages = feedMessages.slice(-30);
+      }
     }
-    const newMessages = data.result
-      .map(u => u.message || u.channel_post)
-      .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption));
-    if (newMessages.length > 0) {
-      feedMessages.push(...newMessages);
-      feedMessages = feedMessages.slice(-30);
-      renderTelegramFeed();
-    }
+    // Immer neu rendern, auch ohne neue Nachrichten - sonst bleibt "Lade
+    // Nachrichten..." fuer immer stehen, sobald einmal nichts Neues da ist.
+    renderTelegramFeed();
   } catch (e) {
     if (feed && feed.childElementCount === 0) feed.innerHTML = `<div class="feed-empty">Feed gerade nicht erreichbar</div>`;
   }
