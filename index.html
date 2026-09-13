@@ -183,6 +183,37 @@ body.koks-mode {
 #cameraFlash.flash { animation: flashPop 0.4s ease-out; }
 @keyframes flashPop { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
+/* Beweisfoto: Kamera-Ueberlay mit Vorschau vor dem Versand */
+.proof-overlay {
+  position: fixed; inset: 0; background: #000; z-index: 9996;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+}
+.proof-overlay.active { opacity: 1; pointer-events: all; }
+.proof-overlay video, .proof-overlay img {
+  max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: cover;
+}
+.proof-controls {
+  position: absolute; bottom: 40px; left: 0; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 30px;
+}
+.proof-close {
+  position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+  border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff;
+  font-size: 1.2rem; cursor: pointer; backdrop-filter: blur(10px);
+}
+.proof-shutter {
+  width: 72px; height: 72px; border-radius: 50%; background: #fff;
+  border: 4px solid rgba(255,255,255,0.4); cursor: pointer;
+}
+.proof-shutter:active { transform: scale(0.92); }
+.proof-retake, .proof-confirm {
+  padding: 14px 24px; border-radius: 30px; border: none; font-weight: 700;
+  font-size: 0.9rem; cursor: pointer; font-family: inherit;
+}
+.proof-retake { background: rgba(255,255,255,0.15); color: #fff; }
+.proof-confirm { background: linear-gradient(135deg, #2AABEE, #1c8cd8); color: #fff; }
+
 /* Sanftes Einblenden von Inhalten beim Scrollen */
 .reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
 .reveal.in-view { opacity: 1; transform: translateY(0); }
@@ -578,11 +609,23 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   <button class="order-btn" onclick="orderNow()">🚨 Jetzt Nutten bestellen</button>
   <div id="orderResult" class="order-result">Nutten sind bestellt</div>
   <br>
-  <button class="proof-btn" onclick="takeProofPhoto()">📸 Beweisfoto an die Gruppe</button>
-  <video id="proofVideo" playsinline muted style="display:none;"></video>
-  <canvas id="proofCanvas" style="display:none;"></canvas>
+  <button class="proof-btn" onclick="openProofCamera()">📸 Beweisfoto an die Gruppe</button>
 </div>
 <div id="cameraFlash"></div>
+
+<div id="proofOverlay" class="proof-overlay">
+  <video id="proofVideo" playsinline muted></video>
+  <img id="proofPreviewImg" style="display:none;" alt="">
+  <canvas id="proofCanvas" style="display:none;"></canvas>
+  <button class="proof-close" onclick="closeProofOverlay()">✕</button>
+  <div id="proofControlsCapture" class="proof-controls">
+    <button class="proof-shutter" onclick="captureProofPhoto()" aria-label="Foto aufnehmen"></button>
+  </div>
+  <div id="proofControlsConfirm" class="proof-controls" style="display:none;">
+    <button class="proof-retake" onclick="retakeProofPhoto()">↺ Nochmal</button>
+    <button class="proof-confirm" onclick="confirmSendProofPhoto()">Senden ✈️</button>
+  </div>
+</div>
 
 <script>
 // ============================================================
@@ -736,37 +779,74 @@ function orderNow() {
   sendTelegramChat("🚨 Roman hat Nutten bestellt.");
 }
 
-// --- BEWEISFOTO: Kamera-Schnappschuss direkt an die Telegram-Gruppe ---
-async function takeProofPhoto() {
+// --- BEWEISFOTO: verhaelt sich wie eine normale Kamera-App -----------------
+// Erst Vorschau + Aufnahme, dann muss der Nutzer aktiv "Senden" tippen,
+// bevor irgendetwas an Telegram rausgeht. Nichts wird automatisch verschickt.
+let proofStream = null;
+let proofBlob = null;
+
+async function openProofCamera() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showToast("Kamera wird nicht unterstützt", "❌"); return;
   }
-  let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    proofStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
   } catch (e) {
     showToast("Kamera-Zugriff verweigert", "❌"); return;
   }
-  const video = document.getElementById('proofVideo');
-  video.srcObject = stream;
-  await video.play();
-  await new Promise(r => setTimeout(r, 500)); // kurz warten, bis die Kamera scharfstellt
+  document.getElementById('proofOverlay').classList.add('active');
+  await startProofPreview();
+}
 
+async function startProofPreview() {
+  const video = document.getElementById('proofVideo');
+  video.srcObject = proofStream;
+  await video.play();
+  proofBlob = null;
+  video.style.display = 'block';
+  document.getElementById('proofPreviewImg').style.display = 'none';
+  document.getElementById('proofControlsCapture').style.display = 'flex';
+  document.getElementById('proofControlsConfirm').style.display = 'none';
+}
+
+function captureProofPhoto() {
+  const video = document.getElementById('proofVideo');
   const canvas = document.getElementById('proofCanvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-  stream.getTracks().forEach(t => t.stop());
 
   const flash = document.getElementById('cameraFlash');
   flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash');
 
-  canvas.toBlob(async (blob) => {
+  canvas.toBlob((blob) => {
     if (!blob) { showToast("Foto fehlgeschlagen", "❌"); return; }
-    showToast("Sende Beweisfoto...", "📸");
-    await sendTelegramPhoto(blob, "📸 Beweisfoto von der Seite!");
-    showToast(telegramConfigured ? "Beweisfoto gesendet!" : "Foto bereit (Telegram fehlt noch)", telegramConfigured ? "✅" : "⚠️");
+    proofBlob = blob;
+    const img = document.getElementById('proofPreviewImg');
+    img.src = URL.createObjectURL(blob);
+    video.style.display = 'none';
+    img.style.display = 'block';
+    document.getElementById('proofControlsCapture').style.display = 'none';
+    document.getElementById('proofControlsConfirm').style.display = 'flex';
   }, 'image/jpeg', 0.85);
+}
+
+function retakeProofPhoto() {
+  startProofPreview();
+}
+
+function closeProofOverlay() {
+  document.getElementById('proofOverlay').classList.remove('active');
+  if (proofStream) { proofStream.getTracks().forEach(t => t.stop()); proofStream = null; }
+  proofBlob = null;
+}
+
+async function confirmSendProofPhoto() {
+  if (!proofBlob) return;
+  showToast("Sende Beweisfoto...", "📸");
+  await sendTelegramPhoto(proofBlob, "📸 Beweisfoto von der Seite!");
+  showToast(telegramConfigured ? "Beweisfoto gesendet!" : "Foto bereit (Telegram fehlt noch)", telegramConfigured ? "✅" : "⚠️");
+  closeProofOverlay();
 }
 
 // --- KONFETTI fuer die Geschenk-Feier ---
