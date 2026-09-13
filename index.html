@@ -79,16 +79,20 @@ body.koks-mode {
   padding: 0 8px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.6);
   transition: all 0.3s;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; -ms-overflow-style: none;
 }
+.top-nav::-webkit-scrollbar { display: none; }
 .nav-btn {
   background: transparent; border: none; color: rgba(255,255,255,0.9);
-  padding: 0 12px; height: 100%; border-radius: 20px;
-  font-size: 0.75rem; font-weight: 700; cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px; height: 100%; border-radius: 20px;
+  font-size: 0.68rem; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0; white-space: nowrap;
   transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
 }
 .nav-btn:active { transform: scale(0.92); opacity: 0.8; }
-.nav-icon { font-size: 1.2rem; }
+.nav-icon { font-size: 1.05rem; }
 .wodka-active {
   color: #ff4757 !important;
   text-shadow: 0 0 15px rgba(255, 71, 87, 0.8);
@@ -188,7 +192,7 @@ body.koks-mode {
 
 .hit-badge {
   background: #2AABEE; color: white; font-size: 0.65rem; padding: 2px 7px; border-radius: 10px;
-  margin-left: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  margin-left: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); flex-shrink: 0;
 }
 
 /* --- VIDEO / IMAGE HERO CONTAINER --- */
