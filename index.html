@@ -162,6 +162,30 @@ body.koks-mode {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
   100% { transform: translate(var(--tx), -120vh) rotate(720deg); opacity: 0; }
 }
+.confetti-piece {
+  position: fixed; top: -20px; width: 10px; height: 16px; pointer-events: none; z-index: 9998;
+  animation-name: confettiFall; animation-timing-function: ease-in; animation-fill-mode: forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--cx), 105vh) rotate(var(--cr)); opacity: 0.9; }
+}
+
+/* Kamera-Blitz fuer das Beweisfoto */
+#cameraFlash {
+  position: fixed; inset: 0; background: #fff; z-index: 9997;
+  opacity: 0; pointer-events: none;
+}
+#cameraFlash.flash { animation: flashPop 0.4s ease-out; }
+@keyframes flashPop { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+
+/* Sanftes Einblenden von Inhalten beim Scrollen */
+.reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.in-view { opacity: 1; transform: translateY(0); }
+.glass-box.reveal:nth-child(2) { transition-delay: 0.12s; }
+.glass-box.reveal:nth-child(3) { transition-delay: 0.24s; }
+.final-video-wrap.reveal + .final-video-wrap.reveal { transition-delay: 0.15s; }
+
 .hit-badge {
   background: #2AABEE; color: white; font-size: 0.65rem; padding: 2px 7px; border-radius: 10px;
   margin-left: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -339,6 +363,14 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   50%      { text-shadow: 0 0 45px rgba(255, 45, 117, 1); }
 }
 
+.proof-btn {
+  margin-top: 22px; background: rgba(255,255,255,0.06); color: #fff;
+  border: 1px solid rgba(255,255,255,0.2); padding: 14px 26px; border-radius: 18px;
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; cursor: pointer;
+  font-family: inherit; backdrop-filter: blur(10px); transition: transform 0.2s, background 0.2s;
+}
+.proof-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.12); }
+
 /* --- PLAYER BAR --- */
 .player-bar {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -466,7 +498,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   </div>
 </div>
 
-<div class="collage-section">
+<div class="collage-section reveal">
   <h2>Die Crew</h2>
   <h1 style="font-size: clamp(2rem, 6vw, 3.5rem);">Bevor's in die Hitze geht</h1>
   <p>Ein paar Erinnerungen von uns, bevor wir dich in die nächste Dekade schwitzen. Wisch durch, tippe für die Großansicht.</p>
@@ -483,17 +515,17 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   <div class="content-overlay">
     <h2>Das Programm</h2>
     <div class="icon-grid">
-      <div class="glass-box" onclick="showInfo('aufguss', event)">
+      <div class="glass-box reveal" onclick="showInfo('aufguss', event)">
         <span class="icon">🔥</span>
         <h3>Aufguss</h3>
         <p>Echte russische Hitze.</p>
       </div>
-      <div class="glass-box" onclick="showInfo('wenik', event)">
+      <div class="glass-box reveal" onclick="showInfo('wenik', event)">
         <span class="icon">🌿</span>
         <h3>Wenik</h3>
         <p>Schlagen mit Birkenzweigen.</p>
       </div>
-      <div class="glass-box" onclick="showInfo('food', event)">
+      <div class="glass-box reveal" onclick="showInfo('food', event)">
         <span class="icon">🍻</span>
         <h3>Essen & Trinken</h3>
         <p>Das volle Programm.</p>
@@ -505,7 +537,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
 <div class="video-section">
   <video muted loop playsinline preload="none" data-bg="1"><source src="maenner.mp4" type="video/mp4"></video>
   <div class="content-overlay">
-    <div class="voucher-card">
+    <div class="voucher-card reveal">
       <h2>Dein Geschenk</h2>
       <p>Eintritt, Behandlung & Verpflegung gehen auf uns.</p>
       <p style="margin-top: 10px; color: #bbb; font-size: 0.9rem;">Von der ganzen Crew</p>
@@ -530,26 +562,34 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   <h2>Zum Schluss</h2>
   <h1 style="font-size: clamp(2rem, 6vw, 3.5rem);">Noch ein Beweis</h1>
   <p>Falls jemand fragt, was da wirklich passiert ist.</p>
-  <div class="final-video-wrap">
+  <div class="final-video-wrap reveal">
     <video src="Bilder/video-01.mp4" controls playsinline preload="none"></video>
   </div>
-  <div class="final-video-wrap">
+  <div class="final-video-wrap reveal">
     <video src="altes_video_.mp4" controls playsinline preload="none"></video>
   </div>
 </div>
 
-<div class="order-section">
+<div class="order-section reveal">
   <button class="order-btn" onclick="orderNow()">🚨 Jetzt Nutten bestellen</button>
   <div id="orderResult" class="order-result">Nutten sind bestellt</div>
+  <br>
+  <button class="proof-btn" onclick="takeProofPhoto()">📸 Beweisfoto an die Gruppe</button>
+  <video id="proofVideo" playsinline muted style="display:none;"></video>
+  <canvas id="proofCanvas" style="display:none;"></canvas>
 </div>
+<div id="cameraFlash"></div>
 
 <script>
 // ============================================================
 //  KONFIG
 // ============================================================
-// Trage hier euren eigenen Telegram-Bot-Token und die Chat-ID ein.
-const botToken = "";
-const chatId = "";
+// Gleicher Bot & gleiche Gruppe wie beim kippes-gift-Projekt, damit alle
+// Nachrichten in einem Chat landen. SITE_TAG macht sichtbar, von welcher
+// der beiden Seiten (Roman-40 vs. das andere Geschenk) eine Nachricht kommt.
+const botToken = "8561313901:AAF_jIf9EkLFaI-mWIrgXb7iIt2cd1kqLFk";
+const chatId = "-1003505515564";
+const SITE_TAG = "🎂 Roman-40";
 const telegramConfigured = Boolean(botToken && chatId);
 
 // ============================================================
@@ -571,7 +611,17 @@ function showToast(msg, icon) {
 
 function sendTelegramChat(text) {
   if (!telegramConfigured) { console.log("Telegram nicht konfiguriert:", text); return; }
-  fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`).catch(e=>console.log(e));
+  const tagged = `${SITE_TAG} | ${text}`;
+  fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(tagged)}`).catch(e=>console.log(e));
+}
+
+function sendTelegramPhoto(blob, caption) {
+  if (!telegramConfigured) { console.log("Telegram nicht konfiguriert (Foto)"); return Promise.resolve(); }
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append('caption', `${SITE_TAG} | ${caption}`);
+  form.append('photo', blob, 'beweisfoto.jpg');
+  return fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: form }).catch(e => console.log(e));
 }
 
 // ============================================================
@@ -679,7 +729,54 @@ function orderNow() {
   void res.offsetWidth;              // Reflow erzwingen, damit die Animation neu startet
   res.classList.add('visible');
   for (let i = 0; i < 14; i++) setTimeout(() => createParticle("💋"), i * 60);
-  sendTelegramChat("🚨 Roman hat bestellt. Die Jungs wissen Bescheid.");
+  sendTelegramChat("🚨 Roman hat Nutten bestellt.");
+}
+
+// --- BEWEISFOTO: Kamera-Schnappschuss direkt an die Telegram-Gruppe ---
+async function takeProofPhoto() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast("Kamera wird nicht unterstützt", "❌"); return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+  } catch (e) {
+    showToast("Kamera-Zugriff verweigert", "❌"); return;
+  }
+  const video = document.getElementById('proofVideo');
+  video.srcObject = stream;
+  await video.play();
+  await new Promise(r => setTimeout(r, 500)); // kurz warten, bis die Kamera scharfstellt
+
+  const canvas = document.getElementById('proofCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  stream.getTracks().forEach(t => t.stop());
+
+  const flash = document.getElementById('cameraFlash');
+  flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash');
+
+  canvas.toBlob(async (blob) => {
+    if (!blob) { showToast("Foto fehlgeschlagen", "❌"); return; }
+    showToast("Sende Beweisfoto...", "📸");
+    await sendTelegramPhoto(blob, "📸 Beweisfoto von der Seite!");
+    showToast(telegramConfigured ? "Beweisfoto gesendet!" : "Foto bereit (Telegram fehlt noch)", telegramConfigured ? "✅" : "⚠️");
+  }, 'image/jpeg', 0.85);
+}
+
+// --- KONFETTI fuer die Geschenk-Feier ---
+function createConfetti() {
+  const colors = ['#2AABEE', '#ff4757', '#ffd23f', '#06d6a0', '#f72585'];
+  const piece = document.createElement('div');
+  piece.className = 'confetti-piece';
+  piece.style.left = (Math.random() * 100) + 'vw';
+  piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+  piece.style.setProperty('--cx', (Math.random() * 200 - 100) + 'px');
+  piece.style.setProperty('--cr', (Math.random() * 720 - 360) + 'deg');
+  piece.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+  document.body.appendChild(piece);
+  setTimeout(() => piece.remove(), 4500);
 }
 
 // ============================================================
@@ -856,6 +953,20 @@ function setupMediaSessionHandlers() {
       if (d.seekTime != null && isFinite(audio.duration)) audio.currentTime = d.seekTime;
     });
   } catch (e) {}
+}
+
+function setupScrollReveal() {
+  const items = document.querySelectorAll('.reveal');
+  if (!items.length) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  items.forEach(el => io.observe(el));
 }
 
 function updateMediaMetadata() {
@@ -1067,6 +1178,7 @@ function sendTelegram() {
 function triggerYeah() {
   document.getElementById('celebration').classList.add('active');
   setTimeout(() => document.getElementById('celebration').classList.remove('active'), 3000);
+  for (let i = 0; i < 40; i++) setTimeout(createConfetti, i * 40);
   sendTelegramChat("Roman hat das Geschenk angenommen! 🎉");
 }
 
@@ -1081,6 +1193,7 @@ window.addEventListener('load', function() {
   setupVideoObserver();
   setupAudioDucking();
   setupMediaSessionHandlers();
+  setupScrollReveal();
 
   if (playlist.length > 0) loadSong(0, false);
 
