@@ -759,36 +759,35 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// getUpdates liefert immer erst die AELTESTEN noch unbestaetigten Updates.
-// Ohne einen wachsenden "offset" haengt der Feed an einem alten Backlog fest,
-// sobald der Bot ueber viele Anfragen (SOS, Bestellungen, Erinnerungen, ...)
-// mehr als "limit" unbestaetigte Updates angesammelt hat - neue Nachrichten
-// kommen dann nie durch. Deshalb merken wir uns die hoechste gesehene
-// update_id und bestaetigen bis dahin, damit jeder Poll wirklich das Neueste
-// bekommt statt immer wieder denselben alten Ausschnitt.
-let telegramOffset = 0;
-let feedMessages = [];
+// WICHTIG: Wir bestaetigen absichtlich NIE einen offset gegenueber Telegram.
+// getUpdates confirm/offset ist global fuer den ganzen Bot - sobald irgendein
+// Besucher (oder ein Reload derselben Person) einen offset bestaetigt,
+// verschwinden diese Nachrichten serverseitig fuer ALLE anderen Sessions und
+// jeden zukuenftigen Seitenaufruf fuer immer. Genau das fuehrte dazu, dass
+// nur noch die zuletzt gepollten Nachrichten sichtbar waren und aeltere beim
+// naechsten Laden weg waren. Ohne offset bekommt jede Session bei jedem Poll
+// immer den kompletten aktuell verfuegbaren Verlauf (das, was der Bot sehen
+// konnte, seit der Privacy Mode ausgeschaltet wurde - alles davor kann die
+// Bot-API grundsaetzlich nicht liefern, das ist eine Plattform-Grenze).
+// Kleiner Kompromiss: sollte die Gruppe irgendwann mehr als 100 nie
+// bestaetigte Nachrichten ansammeln, wuerden die aeltesten davon die neuesten
+// aus dem Fenster verdraengen - fuer eine kleine private Gruppe unrealistisch.
+let remoteMessages = [];
+let localEchoes = [];
 
 async function pollTelegramFeed() {
   if (!telegramConfigured) return;
   const feed = document.getElementById('telegramFeed');
   try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100&offset=${telegramOffset}`);
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100`);
     const data = await res.json();
     if (!data.ok) { // z.B. kurzzeitiger 409-Konflikt bei mehreren gleichzeitigen Besuchern
       if (feed && feed.childElementCount === 0) feed.innerHTML = `<div class="feed-empty">Feed gerade nicht erreichbar</div>`;
       return;
     }
-    if (data.result.length > 0) {
-      telegramOffset = data.result[data.result.length - 1].update_id + 1;
-      const newMessages = data.result
-        .map(u => u.message || u.channel_post)
-        .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption));
-      if (newMessages.length > 0) {
-        feedMessages.push(...newMessages);
-        feedMessages = feedMessages.slice(-30);
-      }
-    }
+    remoteMessages = data.result
+      .map(u => u.message || u.channel_post)
+      .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption));
     // Immer neu rendern, auch ohne neue Nachrichten - sonst bleibt "Lade
     // Nachrichten..." fuer immer stehen, sobald einmal nichts Neues da ist.
     renderTelegramFeed();
@@ -804,19 +803,19 @@ async function pollTelegramFeed() {
 // eigenen Klick sofort im Feed sieht (andere Besucher sehen dieses Echo
 // naturgemaess nur, wenn sie es selbst ausloesen).
 function echoLocalFeedMessage(text) {
-  feedMessages.push({ from: { first_name: 'Du' }, text, date: Date.now() / 1000, _local: true });
-  feedMessages = feedMessages.slice(-30);
+  localEchoes.push({ from: { first_name: 'Du' }, text, date: Date.now() / 1000, _local: true });
   renderTelegramFeed();
 }
 
 function renderTelegramFeed() {
   const feed = document.getElementById('telegramFeed');
   if (!feed) return;
-  if (feedMessages.length === 0) {
+  const all = remoteMessages.concat(localEchoes);
+  if (all.length === 0) {
     feed.innerHTML = `<div class="feed-empty">Noch keine Nachrichten in der Gruppe 👀</div>`;
     return;
   }
-  const sorted = feedMessages.slice().sort((a, b) => a.date - b.date);
+  const sorted = all.slice().sort((a, b) => a.date - b.date).slice(-60);
   feed.innerHTML = sorted.map(m => {
     const name = m._local ? 'Du' : ((m.from && (m.from.first_name || m.from.username)) || 'Jemand');
     const text = m.text || m.caption || '📷 Foto';
