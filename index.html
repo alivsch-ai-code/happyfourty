@@ -773,7 +773,20 @@ function escapeHtml(str) {
 // bestaetigte Nachrichten ansammeln, wuerden die aeltesten davon die neuesten
 // aus dem Fenster verdraengen - fuer eine kleine private Gruppe unrealistisch.
 let remoteMessages = [];
-let localEchoes = [];
+// localEchoes ueberlebt einen Reload via localStorage - sonst verschwinden
+// die eigenen Bot-Nachrichten (SOS, Bestellung, ...) beim naechsten Laden,
+// weil Telegram sie (siehe oben) nie ueber getUpdates zurueckgibt und wir
+// sie sonst nirgendwo gespeichert haetten.
+function loadLocalEchoes() {
+  try {
+    const raw = localStorage.getItem('roman40_local_echoes');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveLocalEchoes() {
+  try { localStorage.setItem('roman40_local_echoes', JSON.stringify(localEchoes.slice(-30))); } catch (e) {}
+}
+let localEchoes = loadLocalEchoes();
 
 async function pollTelegramFeed() {
   if (!telegramConfigured) return;
@@ -804,6 +817,8 @@ async function pollTelegramFeed() {
 // naturgemaess nur, wenn sie es selbst ausloesen).
 function echoLocalFeedMessage(text) {
   localEchoes.push({ from: { first_name: 'Du' }, text, date: Date.now() / 1000, _local: true });
+  localEchoes = localEchoes.slice(-30);
+  saveLocalEchoes();
   renderTelegramFeed();
 }
 
@@ -1467,6 +1482,7 @@ window.addEventListener('load', function() {
   setupScrollReveal();
 
   if (telegramConfigured) {
+    renderTelegramFeed(); // zeigt gespeicherte eigene Nachrichten sofort, auch bevor Telegram geantwortet hat
     pollTelegramFeed();
     setInterval(pollTelegramFeed, 8000);
   }
