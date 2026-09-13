@@ -37,6 +37,30 @@ body.drunk-mode .video-section {
   100% { transform: rotate(0deg) translate(0,0) scale(1); }
 }
 
+/* --- KOKS MODUS --- */
+body.koks-mode {
+  animation: koksRush 1.2s infinite ease-in-out;
+}
+@keyframes koksRush {
+  0%, 100% { filter: saturate(1.4) brightness(1.05); }
+  50%      { filter: saturate(1.9) brightness(1.18); }
+}
+.koks-active {
+  color: #fff !important;
+  text-shadow: 0 0 15px rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.15) !important;
+}
+.snow-particle {
+  position: fixed; top: -40px; pointer-events: none; z-index: 8400;
+  color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.8);
+  animation-name: snowFall; animation-timing-function: linear; animation-fill-mode: forwards;
+}
+@keyframes snowFall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(var(--sx), 110vh) rotate(540deg); opacity: 0.8; }
+}
+
 /* --- TOP NAV BAR --- */
 .top-nav {
   position: fixed;
@@ -377,6 +401,9 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   <button class="nav-btn" id="wodkaBtn" onclick="toggleWodkaMode()">
     <span class="nav-icon">😵</span> Wodka
   </button>
+  <button class="nav-btn" id="koksBtn" onclick="toggleKoksMode()">
+    <span class="nav-icon">❄️</span> Koks
+  </button>
   <button class="nav-btn" onclick="wenikSlap(this)">
     <span class="nav-icon">🌿</span> Wenik
     <span id="hitCounter" class="hit-badge">0</span>
@@ -407,7 +434,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
     <input type="range" id="seekSlider" class="seek-slider" value="0" min="0" max="100">
   </div>
   <div class="player-left">
-    <img id="coverArt" class="cover-img" src="Bilder/foto-01.jpeg" alt="" onclick="expandCover(event)">
+    <img id="coverArt" class="cover-img" src="cover/template.jpg" alt="" onclick="expandCover(event)">
   </div>
   <div class="player-center">
     <div class="song-info"><span id="songTitle" class="song-title">Musik folgt bald 🎶</span></div>
@@ -571,6 +598,53 @@ function toggleWodkaMode() {
   const btn = document.getElementById('wodkaBtn');
   btn.classList.toggle('wodka-active', isActive);
   showToast(isActive ? "Wodka Modus: AKTIV" : "Wodka Modus: AUS", isActive ? "😵" : "😌");
+}
+
+// --- KOKS MODUS: Schnee + schnellere Musik ---
+let koksActive = false;
+let snowTimer = null;
+const KOKS_RATE = 1.4;
+
+function toggleKoksMode() {
+  koksActive = !koksActive;
+  const btn = document.getElementById('koksBtn');
+  document.body.classList.toggle('koks-mode', koksActive);
+  if (koksActive) {
+    btn.classList.add('koks-active');
+    applyKoksRate();
+    snowTimer = setInterval(createSnowflake, 120);
+    for (let i = 0; i < 25; i++) setTimeout(createSnowflake, i * 30);
+    showToast("Koks Modus: AKTIV", "❄️");
+  } else {
+    btn.classList.remove('koks-active');
+    clearInterval(snowTimer); snowTimer = null;
+    applyKoksRate();
+    showToast("Koks Modus: AUS", "😴");
+  }
+}
+
+function applyKoksRate() {
+  const rate = koksActive ? KOKS_RATE : 1;
+  audio.playbackRate = rate;
+  audio.preservesPitch = false;
+  audio.webkitPreservesPitch = false;
+  audio.mozPreservesPitch = false;
+  document.querySelectorAll('video').forEach(v => { v.playbackRate = rate; });
+}
+
+function createSnowflake() {
+  const symbols = ['❄️', '❅', '❆', '•'];
+  const flake = document.createElement('div');
+  flake.className = 'snow-particle';
+  flake.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+  flake.style.left = (Math.random() * 100) + 'vw';
+  flake.style.fontSize = (0.7 + Math.random() * 1.3) + 'rem';
+  flake.style.opacity = 0.5 + Math.random() * 0.5;
+  const dur = 3 + Math.random() * 4;
+  flake.style.animationDuration = dur + 's';
+  flake.style.setProperty('--sx', (Math.random() * 120 - 60) + 'px');
+  document.body.appendChild(flake);
+  setTimeout(() => flake.remove(), dur * 1000 + 200);
 }
 
 let hitCount = 0;
@@ -743,16 +817,16 @@ document.getElementById('fullCoverOverlay').addEventListener('touchmove', closeF
 //  PLAYLIST
 // ============================================================
 const playlist = [
-  { title: "Intro – Roman anstatt Alex", src: "mp3/01. Intro – Roman anstatt Alex.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Zwei Geburtstage, ein Ziel", src: "mp3/Zwei Geburtstage, ein Ziel.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Auf unser'n Nacken", src: "mp3/Auf unser'n Nacken.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Wird zu Gold", src: "mp3/Wird zu Gold.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Roman wird vierzig (Cover)", src: "mp3/Roman wird vierzig_covered.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Alles Gute, Roman", src: "mp3/Alles Gute, Roman.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "Bilder/foto-01.jpeg" },
-  { title: "Shurik ist glücklich", src: "mp3/Shurik ist glücklich.mp3", cover: "Bilder/foto-01.jpeg" },
+  { title: "Intro – Roman anstatt Alex", src: "mp3/01. Intro – Roman anstatt Alex.mp3", cover: "cover/01-intro.jpg" },
+  { title: "Zwei Geburtstage, ein Ziel", src: "mp3/Zwei Geburtstage, ein Ziel.mp3", cover: "cover/02-zwei-geburtstage.jpg" },
+  { title: "Auf unser'n Nacken", src: "mp3/Auf unser'n Nacken.mp3", cover: "cover/03-auf-unsern-nacken.jpg" },
+  { title: "Wird zu Gold", src: "mp3/Wird zu Gold.mp3", cover: "cover/04-wird-zu-gold.jpg" },
+  { title: "Roman wird vierzig (Cover)", src: "mp3/Roman wird vierzig_covered.mp3", cover: "cover/05-roman-wird-vierzig.jpg" },
+  { title: "Alles Gute, Roman", src: "mp3/Alles Gute, Roman.mp3", cover: "cover/06-alles-gute-roman.jpg" },
+  { title: "Banja in den Bergen", src: "mp3/Banja in den Bergen.mp3", cover: "cover/07-banja-in-den-bergen.jpg" },
+  { title: "Banya-Gangster", src: "mp3/Banya-Gangster.mp3", cover: "cover/08-banya-gangster.jpg" },
+  { title: "Чёрный Бумер (Флизинлегер-мэн)", src: "mp3/Чёрный Бумер (Флизинлегер-мэн) (1).mp3", cover: "cover/09-schwarzer-bumer.jpg" },
+  { title: "Shurik ist glücklich", src: "mp3/Shurik ist glücklich.mp3", cover: "cover/10-shurik-ist-gluecklich.jpg" },
 ];
 
 let currentSongIndex = 0;
@@ -806,7 +880,7 @@ function loadSong(index, autoplay) {
   audio.load();
   songTitle.innerText = playlist[currentSongIndex].title;
   coverArt.src = safeUrl(playlist[currentSongIndex].cover);
-  coverArt.onerror = function() { this.src = 'Bilder/foto-01.jpeg'; };
+  coverArt.onerror = function() { this.src = 'cover/template.jpg'; };
 
   renderPlaylist();
   updateMediaMetadata();
@@ -842,6 +916,8 @@ audio.addEventListener('pause', () => {
   updatePlayIcon(false);
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
+audio.addEventListener('play', applyKoksRate);
+audio.addEventListener('loadeddata', applyKoksRate);
 
 // Netzwerk-Aussetzer abfangen statt einfach stehenzubleiben
 let retryTimer = null;
@@ -897,7 +973,7 @@ document.addEventListener('visibilitychange', function() {
 // Expand Cover
 function expandCover(event) {
   event.stopPropagation();
-  if (playlist.length === 0) { openLightbox('Bilder/foto-01.jpeg', false); return; }
+  if (playlist.length === 0) { openLightbox('cover/template.jpg', false); return; }
   openLightbox(playlist[currentSongIndex].cover, false);
 }
 
@@ -937,7 +1013,7 @@ function renderPlaylist() {
   playlist.forEach((song, index) => {
     const item = document.createElement("div");
     item.className = `playlist-item ${index === currentSongIndex ? 'active' : ''}`;
-    item.innerHTML = `<div style="display:flex;align-items:center;"><img src="${safeUrl(song.cover)}" onerror="this.src='Bilder/foto-01.jpeg'"><span>${song.title}</span></div>`;
+    item.innerHTML = `<div style="display:flex;align-items:center;"><img src="${safeUrl(song.cover)}" onerror="this.src='cover/template.jpg'"><span>${song.title}</span></div>`;
     item.onclick = () => { failCount = 0; loadSong(index, true); togglePlaylist(); };
     playlistContainer.appendChild(item);
   });
