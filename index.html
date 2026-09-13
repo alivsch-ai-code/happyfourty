@@ -202,6 +202,11 @@ body.koks-mode {
   border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff;
   font-size: 1.2rem; cursor: pointer; backdrop-filter: blur(10px);
 }
+.proof-flip {
+  position: absolute; top: 20px; left: 20px; width: 40px; height: 40px;
+  border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: #fff;
+  font-size: 1.15rem; cursor: pointer; backdrop-filter: blur(10px);
+}
 .proof-shutter {
   width: 72px; height: 72px; border-radius: 50%; background: #fff;
   border: 4px solid rgba(255,255,255,0.4); cursor: pointer;
@@ -666,6 +671,7 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   <img id="proofPreviewImg" style="display:none;" alt="">
   <canvas id="proofCanvas" style="display:none;"></canvas>
   <button class="proof-close" onclick="closeProofOverlay()">✕</button>
+  <button class="proof-flip" id="proofFlipBtn" onclick="switchProofCamera()" aria-label="Kamera wechseln">🔄</button>
   <div id="proofControlsCapture" class="proof-controls">
     <button class="proof-shutter" onclick="captureProofPhoto()" aria-label="Foto aufnehmen"></button>
   </div>
@@ -708,6 +714,7 @@ function sendTelegramChat(text) {
   if (!telegramConfigured) { console.log("Telegram nicht konfiguriert:", text); return; }
   const tagged = `${SITE_TAG} | ${text}`;
   fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(tagged)}`).catch(e=>console.log(e));
+  echoLocalFeedMessage(text);
 }
 
 function sendTelegramPhoto(blob, caption) {
@@ -716,6 +723,7 @@ function sendTelegramPhoto(blob, caption) {
   form.append('chat_id', chatId);
   form.append('caption', `${SITE_TAG} | ${caption}`);
   form.append('photo', blob, 'beweisfoto.jpg');
+  echoLocalFeedMessage(caption);
   return fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: form }).catch(e => console.log(e));
 }
 
@@ -729,33 +737,61 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// getUpdates liefert immer erst die AELTESTEN noch unbestaetigten Updates.
+// Ohne einen wachsenden "offset" haengt der Feed an einem alten Backlog fest,
+// sobald der Bot ueber viele Anfragen (SOS, Bestellungen, Erinnerungen, ...)
+// mehr als "limit" unbestaetigte Updates angesammelt hat - neue Nachrichten
+// kommen dann nie durch. Deshalb merken wir uns die hoechste gesehene
+// update_id und bestaetigen bis dahin, damit jeder Poll wirklich das Neueste
+// bekommt statt immer wieder denselben alten Ausschnitt.
+let telegramOffset = 0;
+let feedMessages = [];
+
 async function pollTelegramFeed() {
   if (!telegramConfigured) return;
   const feed = document.getElementById('telegramFeed');
   try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100`);
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100&offset=${telegramOffset}`);
     const data = await res.json();
     if (!data.ok) return; // z.B. kurzzeitiger 409-Konflikt bei mehreren gleichzeitigen Besuchern
-    const messages = data.result
+    if (data.result.length > 0) {
+      telegramOffset = data.result[data.result.length - 1].update_id + 1;
+    }
+    const newMessages = data.result
       .map(u => u.message || u.channel_post)
-      .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption))
-      .sort((a, b) => a.date - b.date)
-      .slice(-20);
-    renderTelegramFeed(messages);
+      .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption));
+    if (newMessages.length > 0) {
+      feedMessages.push(...newMessages);
+      feedMessages = feedMessages.slice(-30);
+      renderTelegramFeed();
+    }
   } catch (e) {
     if (feed && feed.childElementCount === 0) feed.innerHTML = `<div class="feed-empty">Feed gerade nicht erreichbar</div>`;
   }
 }
 
-function renderTelegramFeed(messages) {
+// Nachrichten, die DIESE Seite selbst per Bot verschickt (SOS, Bestellung,
+// Beweisfoto, Wenik-Alarm, Chat-Antwort, ...), landen NIE in getUpdates -
+// Telegram meldet einem Bot nie seine eigenen ausgehenden Nachrichten als
+// Update. Deshalb blenden wir sie hier lokal sofort mit ein, damit man den
+// eigenen Klick sofort im Feed sieht (andere Besucher sehen dieses Echo
+// naturgemaess nur, wenn sie es selbst ausloesen).
+function echoLocalFeedMessage(text) {
+  feedMessages.push({ from: { first_name: 'Du' }, text, date: Date.now() / 1000, _local: true });
+  feedMessages = feedMessages.slice(-30);
+  renderTelegramFeed();
+}
+
+function renderTelegramFeed() {
   const feed = document.getElementById('telegramFeed');
   if (!feed) return;
-  if (messages.length === 0) {
+  if (feedMessages.length === 0) {
     feed.innerHTML = `<div class="feed-empty">Noch keine Nachrichten in der Gruppe 👀</div>`;
     return;
   }
-  feed.innerHTML = messages.map(m => {
-    const name = (m.from && (m.from.first_name || m.from.username)) || 'Jemand';
+  const sorted = feedMessages.slice().sort((a, b) => a.date - b.date);
+  feed.innerHTML = sorted.map(m => {
+    const name = m._local ? 'Du' : ((m.from && (m.from.first_name || m.from.username)) || 'Jemand');
     const text = m.text || m.caption || '📷 Foto';
     const time = new Date(m.date * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     return `<div class="feed-msg"><span class="feed-name">${escapeHtml(name)}</span><span class="feed-text">${escapeHtml(text)}</span><span class="feed-time">${time}</span></div>`;
@@ -876,13 +912,20 @@ function orderNow() {
 // bevor irgendetwas an Telegram rausgeht. Nichts wird automatisch verschickt.
 let proofStream = null;
 let proofBlob = null;
+let proofFacingMode = "user";
+
+async function openStream(facingMode) {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+  proofFacingMode = facingMode;
+  return stream;
+}
 
 async function openProofCamera() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showToast("Kamera wird nicht unterstützt", "❌"); return;
   }
   try {
-    proofStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    proofStream = await openStream("user");
   } catch (e) {
     showToast("Kamera-Zugriff verweigert", "❌"); return;
   }
@@ -890,15 +933,29 @@ async function openProofCamera() {
   await startProofPreview();
 }
 
+async function switchProofCamera() {
+  const nextMode = proofFacingMode === "user" ? "environment" : "user";
+  try {
+    const newStream = await openStream(nextMode);
+    if (proofStream) proofStream.getTracks().forEach(t => t.stop());
+    proofStream = newStream;
+    await startProofPreview();
+  } catch (e) {
+    showToast("Andere Kamera nicht verfügbar", "❌");
+  }
+}
+
 async function startProofPreview() {
   const video = document.getElementById('proofVideo');
   video.srcObject = proofStream;
+  video.style.transform = proofFacingMode === "user" ? "scaleX(-1)" : "none"; // Selfie-Cam spiegeln wie bei jeder Kamera-App
   await video.play();
   proofBlob = null;
   video.style.display = 'block';
   document.getElementById('proofPreviewImg').style.display = 'none';
   document.getElementById('proofControlsCapture').style.display = 'flex';
   document.getElementById('proofControlsConfirm').style.display = 'none';
+  document.getElementById('proofFlipBtn').style.display = 'block';
 }
 
 function captureProofPhoto() {
@@ -906,7 +963,12 @@ function captureProofPhoto() {
   const canvas = document.getElementById('proofCanvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
+  const ctx = canvas.getContext('2d');
+  if (proofFacingMode === "user") { // gespiegelte Vorschau auch gespiegelt aufnehmen
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, 0, 0);
 
   const flash = document.getElementById('cameraFlash');
   flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash');
@@ -920,6 +982,7 @@ function captureProofPhoto() {
     img.style.display = 'block';
     document.getElementById('proofControlsCapture').style.display = 'none';
     document.getElementById('proofControlsConfirm').style.display = 'flex';
+    document.getElementById('proofFlipBtn').style.display = 'none';
   }, 'image/jpeg', 0.85);
 }
 
@@ -1291,7 +1354,11 @@ window.addEventListener('scroll', () => {
 
 function playerClickEffect() { /* CSS Active */ }
 function togglePlaylist() { chatPopup.classList.remove("show"); playlistPopup.classList.toggle("show"); }
-function toggleChatPopup() { playlistPopup.classList.remove("show"); chatPopup.classList.toggle("show"); }
+function toggleChatPopup() {
+  playlistPopup.classList.remove("show");
+  chatPopup.classList.toggle("show");
+  if (chatPopup.classList.contains("show")) pollTelegramFeed();
+}
 
 function renderPlaylist() {
   playlistContainer.innerHTML = "";
@@ -1375,7 +1442,7 @@ window.addEventListener('load', function() {
 
   if (telegramConfigured) {
     pollTelegramFeed();
-    setInterval(pollTelegramFeed, 20000);
+    setInterval(pollTelegramFeed, 8000);
   }
 
   if (playlist.length > 0) loadSong(0, false);
