@@ -1,0 +1,22 @@
+name: Berge-Erinnerung
+
+# Postet in regelmaessigen Abstaenden eine Erinnerungsnachricht in die
+# Telegram-Gruppe - unabhaengig davon, ob gerade jemand die Website
+# besucht. Laeuft einmal woechentlich, damit es nicht nervig wird.
+on:
+  schedule:
+    - cron: '0 18 * * 0' # jeden Sonntag, 18:00 UTC (~19-20 Uhr in Deutschland)
+  workflow_dispatch: {} # erlaubt manuelles Ausloesen im Actions-Tab zum Testen
+
+jobs:
+  reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Nachricht an die Telegram-Gruppe senden
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            --data-urlencode text="🎂 Roman-40 | Hey Jungs, wie schaut's aus, wann fahren wir endlich in die Berge? ⛰️"

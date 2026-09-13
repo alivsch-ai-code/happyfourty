@@ -293,6 +293,22 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
   border-radius: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
 }
 
+.feed-label {
+  font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px;
+  margin-top: 4px;
+}
+.telegram-feed {
+  max-height: 220px; overflow-y: auto; text-align: left;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 10px 14px;
+}
+.feed-msg { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.88rem; }
+.feed-msg:last-child { border-bottom: none; }
+.feed-name { color: var(--primary); font-weight: 700; margin-right: 6px; }
+.feed-text { color: #ddd; word-break: break-word; }
+.feed-time { color: #777; font-size: 0.72rem; margin-left: 6px; }
+.feed-empty { color: #777; font-size: 0.85rem; padding: 6px 0; }
+
 .download-section { margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px; }
 .download-label { font-size: 0.8rem; color: #aaa; margin-bottom: 10px; display: block; text-transform: uppercase; letter-spacing: 1px; }
 .dl-item {
@@ -584,6 +600,8 @@ p { font-size: clamp(1rem, 4vw, 1.25rem); line-height: 1.6; color: #d0d0d0; font
         <input type="text" id="chatMsg" class="chat-input" placeholder="Schreib eine Nachricht..." />
         <button class="chat-send-btn" onclick="sendTelegram()">Senden ✈️</button>
         <div id="chatStatus" class="chat-status" style="text-align: left;"></div>
+        <div class="feed-label">Live aus der Gruppe 💬</div>
+        <div id="telegramFeed" class="telegram-feed"><div class="feed-empty">Lade Nachrichten...</div></div>
       </div>
       <div class="download-section">
         <span class="download-label">Soundtrack Downloads ⬇️</span>
@@ -669,6 +687,50 @@ function sendTelegramPhoto(blob, caption) {
   form.append('caption', `${SITE_TAG} | ${caption}`);
   form.append('photo', blob, 'beweisfoto.jpg');
   return fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: form }).catch(e => console.log(e));
+}
+
+// --- LIVE-FEED: zeigt die letzten Nachrichten aus der Telegram-Gruppe ---
+// Nachrichtentext kommt von Gruppenmitgliedern, also nie ungefiltert ins DOM
+// schreiben (sonst waere ein "<script>" in einer Chat-Nachricht ein XSS fuer
+// alle Besucher der Seite) - deshalb immer ueber escapeHtml() laufen lassen.
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function pollTelegramFeed() {
+  if (!telegramConfigured) return;
+  const feed = document.getElementById('telegramFeed');
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?timeout=0&limit=100`);
+    const data = await res.json();
+    if (!data.ok) return; // z.B. kurzzeitiger 409-Konflikt bei mehreren gleichzeitigen Besuchern
+    const messages = data.result
+      .map(u => u.message || u.channel_post)
+      .filter(m => m && m.chat && String(m.chat.id) === String(chatId) && (m.text || m.caption))
+      .sort((a, b) => a.date - b.date)
+      .slice(-20);
+    renderTelegramFeed(messages);
+  } catch (e) {
+    if (feed && feed.childElementCount === 0) feed.innerHTML = `<div class="feed-empty">Feed gerade nicht erreichbar</div>`;
+  }
+}
+
+function renderTelegramFeed(messages) {
+  const feed = document.getElementById('telegramFeed');
+  if (!feed) return;
+  if (messages.length === 0) {
+    feed.innerHTML = `<div class="feed-empty">Noch keine Nachrichten in der Gruppe 👀</div>`;
+    return;
+  }
+  feed.innerHTML = messages.map(m => {
+    const name = (m.from && (m.from.first_name || m.from.username)) || 'Jemand';
+    const text = m.text || m.caption || '📷 Foto';
+    const time = new Date(m.date * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="feed-msg"><span class="feed-name">${escapeHtml(name)}</span><span class="feed-text">${escapeHtml(text)}</span><span class="feed-time">${time}</span></div>`;
+  }).join('');
+  feed.scrollTop = feed.scrollHeight;
 }
 
 // ============================================================
@@ -1278,6 +1340,11 @@ window.addEventListener('load', function() {
   setupAudioDucking();
   setupMediaSessionHandlers();
   setupScrollReveal();
+
+  if (telegramConfigured) {
+    pollTelegramFeed();
+    setInterval(pollTelegramFeed, 20000);
+  }
 
   if (playlist.length > 0) loadSong(0, false);
 
